@@ -4,3 +4,9 @@ fastmcp
 psycopg2-binary
 openai
 python-dotenv 
+requests
+pandas
+altair
+sqlalchemy
+uvicorn
+pytest 
