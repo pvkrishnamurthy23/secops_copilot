@@ -21,10 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 
-
-
-
-
 # ---------- LangChain Q&A Agent ----------
 def create_llm(config: Dict[str, Any]) -> ChatOpenAI:
     return ChatOpenAI(
