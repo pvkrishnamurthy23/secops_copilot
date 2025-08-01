@@ -1,7 +1,6 @@
 from fastmcp import FastMCP
 import psycopg2
 import pandas as pd
-import logging
 import os
 import openai
 from dotenv import load_dotenv
@@ -130,8 +129,6 @@ def generate_answer(query, context_docs):
 """
     response = llm([HumanMessage(content=prompt)])
     return response.content
-
-
 
 
 @app.tool
