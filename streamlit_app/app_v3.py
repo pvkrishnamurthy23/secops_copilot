@@ -1,6 +1,7 @@
 import logging
 import os
 import asyncio
+import json
 from typing import List, Dict, Any, Optional
 
 import streamlit as st
@@ -16,6 +17,13 @@ from langchain_mcp_adapters.sessions import StreamableHttpConnection
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+
+
+
+
+
 
 # ---------- LangChain Q&A Agent ----------
 def create_llm(config: Dict[str, Any]) -> ChatOpenAI:
@@ -52,19 +60,23 @@ def create_system_prompt() -> str:
         "- Never guess. Always clarify vague inputs.\n"
         "- Always use tools in the reasoning loop before giving a final answer.\n"
         "- Cite sources or reasoning where possible.\n\n"
+        "Guardrails:\n"
+        "- if the question is not related to calibo platform or misconfigurations or cyber security. give Final response as "No Information, Ask questions on Findings, Remediations and Calibo Platfprm only)"\n"
+        "- Dont give any improper responses.\n"
         "TOOLS YOU CAN USE:\n"
         "{{tools}}\n\n"
         "Use a json blob to specify a tool by providing an action key (tool name) and an action_input key (tool input).\n\n"
         "Valid 'action' values: 'Final Answer' or {{tool_names}}\n\n"
+        ""In action_input, "query" is a compulsary sub field if action key is tool name.\n"
         "Provide only ONE action per $JSON_BLOB, as shown:\n"
         {{{{  
   "action": "$TOOL_NAME",  
   "action_input": {{  
-    "query": "value1",  
+    "query": "$INPUT",  
     
   }}  
 }}}}
-        "Follow this format:\n\n"
+        "strictly Follow above format:\n\n"
         "Question: input question to answer\n"
         "Thought: consider previous and subsequent steps\n"
         "Action:\n```
@@ -124,7 +136,7 @@ class DomainQAAgent:
             agent=agent,
             tools=self.tools,
             verbose=True,
-            max_iterations=15,
+            max_iterations=10,
             return_intermediate_steps=True,
             handle_parsing_errors=True,
         )
@@ -158,6 +170,16 @@ if "agent" not in st.session_state:
     st.session_state.agent = DomainQAAgent(config=config)
     st.session_state.history = []
 
+# 🔁 Display full message history
+for msg in st.session_state.history:
+    if isinstance(msg, HumanMessage):
+        with st.chat_message("user"):
+            st.markdown(msg.content)
+    elif isinstance(msg, AIMessage):
+        with st.chat_message("assistant"):
+            st.markdown(msg.content)
+
+# 📝 Accept new input
 user_input = st.chat_input("Ask your question about findings, remediation, or platform...")
 if user_input:
     with st.chat_message("user"):
@@ -165,9 +187,22 @@ if user_input:
 
     with st.chat_message("assistant"):
         response = asyncio.run(st.session_state.agent.achat(user_input))
-        st.markdown(response)
+        # Try to parse response as JSON if it's a string
+        if isinstance(response, str):
+            try:
+                parsed = json.loads(response)
+                st.json(parsed)
+            except json.JSONDecodeError:
+                st.markdown(response)
+        elif isinstance(response, dict) or isinstance(response, list):
+            st.json(response)
+        else:
+            st.markdown(str(response))
+        
 
-    # Update session history
+    # 💾 Save to history
     st.session_state.history.append(HumanMessage(content=user_input))
     st.session_state.history.append(AIMessage(content=response))
     st.session_state.agent.chat_history = st.session_state.history[-5:]
+
+
