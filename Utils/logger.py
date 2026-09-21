@@ -1,7 +1,7 @@
 import logging
 import sys
 
-# Configure logging
+# Configure logging test
 logger = logging.getLogger("MCPClient")
 logger.setLevel(logging.DEBUG)
 
